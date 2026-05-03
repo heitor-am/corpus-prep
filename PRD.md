@@ -1,6 +1,6 @@
 # PRD — corpus-prep
 
-> Pipeline open-source de preparação de corpus para treinamento e fine-tuning de LLMs, em PT-BR. Disciplina **Tópicos em IA / DC-CCN072 — UFPI**, atividade 03.
+> Pipeline open-source de preparação de corpus para treinamento e fine-tuning de LLMs, em PT-BR.
 
 ---
 
@@ -8,20 +8,13 @@
 
 `corpus-prep` é uma biblioteca + CLI que ingere arquivos heterogêneos (PDF, DOCX, PPTX, HTML, imagens, texto), produz texto limpo, deduplicado, filtrado por idioma e exporta como shards Parquet prontos para tokenização e treinamento de LLMs.
 
-O pipeline executa estritamente local, sem APIs pagas, sem serviços de terceiros. Roda em CPU. Cobre os requisitos da atividade 03 e foi desenhado para sobreviver à matéria como showcase de portfólio.
+O pipeline executa estritamente local, sem APIs pagas, sem serviços de terceiros. Roda em CPU.
 
 ---
 
 ## 2. Contexto e motivação
 
-A atividade 03 da disciplina DC/CCN072 pede que os grupos:
-
-1. Pesquisem conceitos de preparação de dados (Trafilatura, Parquet, RefinedWeb, ftfy, downstream).
-2. Implementem deduplicação pré e pós-processada.
-3. Estendam um pipeline de extração existente com OCR e formatos adicionais.
-4. Explorem dados em Parquet com SQL (DuckDB).
-
-A solução padrão seria um notebook único reproduzindo a palestra. Este projeto vai além: empacota o pipeline como biblioteca reutilizável com decisões de arquitetura justificadas, output em formato padrão da indústria (HuggingFace Datasets) e cobertura completa de formatos típicos de domínio brasileiro (diários oficiais, documentos administrativos).
+Treinar ou fazer fine-tuning de um LLM exige um corpus textual limpo. Documentos brutos chegam em formatos heterogêneos (PDF nativo e escaneado, Office, HTML, imagens com OCR), com encoding quebrado, duplicatas e ruído estrutural. `corpus-prep` empacota o caminho desses arquivos brutos até shards Parquet treinováveis como uma biblioteca reutilizável com decisões de arquitetura justificadas e output no formato padrão da indústria (HuggingFace Datasets).
 
 A inspiração arquitetural vem do [DocSmith](https://github.com/heitor-am/docsmith) (Registry Pattern + BaseParser), mas o stack interno foi totalmente substituído por bibliotecas open-source locais.
 
@@ -31,30 +24,23 @@ A inspiração arquitetural vem do [DocSmith](https://github.com/heitor-am/docsm
 
 ### 3.1 Dentro do escopo
 
-| Capacidade | Atende |
-|---|---|
-| Detecção de MIME via Magika | Q7 |
-| Extração de PDF nativo (texto selecionável) | Q7 |
-| Extração de PDF escaneado via OCR | Q7 |
-| Extração de DOCX, PPTX, HTML, imagens | Q7 |
-| Extração de TXT, MD, CSV, JSON | Q7 |
-| Correção de mojibake/encoding | Q4 |
-| Filtragem por idioma (PT-BR) | extra |
-| Deduplicação exact (SHA-256) — pré-processamento | Q6 |
-| Deduplicação MinHash LSH — pós-processamento | Q6 |
-| Output em Parquet com schema explícito | Q2 |
-| Notebooks de exploração com DuckDB | Q8 |
-| CLI ergonômica (`corpus-prep ingest data/raw -o data/corpus`) | extra |
-| Documentação dos conceitos teóricos no README | Q1, Q3, Q5 |
+- Detecção de MIME via Magika
+- Extração de PDF nativo (texto selecionável) e escaneado (via OCR)
+- Extração de DOCX, PPTX, HTML, imagens, TXT, MD, CSV, JSON
+- Correção de mojibake e normalização Unicode
+- Filtragem por idioma (PT-BR via GlotLID v3)
+- Deduplicação binária (SHA-256) e semântica (MinHash LSH)
+- Output em Parquet com schema explícito + manifest JSON
+- Notebooks de exploração e CLI ergonômica
 
 ### 3.2 Fora do escopo (e por quê)
 
 | Excluído | Motivo |
 |---|---|
-| Áudio / vídeo (Whisper) | Decisão do usuário; reduz dependências e GPU |
-| Tokenização (tiktoken / sliding windows) | Pertence à atividade 01; output Parquet alimenta esse pipeline downstream |
+| Áudio / vídeo (Whisper) | Reduz dependências e elimina necessidade de GPU |
+| Tokenização (tiktoken / sliding windows) | Output Parquet alimenta o pipeline de tokenização downstream |
 | Embeddings, indexing, busca semântica | Não é training prep; é RAG |
-| Crawling / web scraping | Pertence à atividade 04 |
+| Crawling / web scraping | Sub-projeto separado; este repo assume os arquivos já no FS |
 | Quality classifiers ML (FineWeb-Edu, BERT) | Inglês only; sem alternativa calibrada para PT-BR no escopo |
 | KenLM perplexity filter | Treinar modelo PT seria sub-projeto separado; v1 sem isso |
 | Distribuição (Slurm, Ray, Spark) | Escala de centenas de MB cabe single-node |
@@ -73,7 +59,7 @@ A inspiração arquitetural vem do [DocSmith](https://github.com/heitor-am/docsm
 | Determinismo | Re-execução produz output idêntico (hashes batem) |
 | Cobertura de testes | ≥ 70% nos módulos `parsers/`, `dedup.py`, `normalize.py` |
 | Reprodutibilidade | `pip install -e .` + `pytest` passa em máquina limpa |
-| Documentação | README cobre Q1, Q3, Q5 conceitualmente; PRD detalha decisões |
+| Documentação | README cobre conceitos (Trafilatura, Parquet, ftfy, downstream); PRD detalha decisões |
 
 ---
 
@@ -86,8 +72,8 @@ Decisões locked-in. Cada escolha justificada vs alternativa avaliada (ver pesqu
 | MIME detection | `magika` | 0.5+ | Apache-2.0 | +22-47% F1 vs python-magic; modelo <1MB |
 | PDF nativo | `pymupdf4llm` (sobre PyMuPDF) | 0.0.17+ | AGPL-3.0 | Output markdown-ready, instantâneo em CPU |
 | PDF escaneado / DOCX / PPTX / IMG | `docling` | 2.0+ | MIT | IBM, multi-formato, OCR embutido (EasyOCR/RapidOCR backend), CPU funciona |
-| HTML | `trafilatura` | 1.12+ | Apache-2.0 | F1 0.945 (SOTA), referência de Q1 do enunciado |
-| Encoding fix | `ftfy` | 6.3+ | Apache-2.0 | Padrão de fato, exigido por Q4 |
+| HTML | `trafilatura` | 1.12+ | Apache-2.0 | F1 0.945 (SOTA) para extração de conteúdo principal |
+| Encoding fix | `ftfy` | 6.3+ | Apache-2.0 | Padrão de fato para reparar mojibake |
 | Language ID | `fasttext` + GlotLID v3 model | — | MIT (lib) / research (model) | 2102 idiomas, supera lid.176 em PT-BR |
 | Deduplicação | `text-dedup` | git+main (não publicado em PyPI estável) | Apache-2.0 | Inclui exact + MinHash LSH numa só lib |
 | Output | `pyarrow` | 18+ | Apache-2.0 | Parquet, zstd, schema; integra com `datasets` HF |
@@ -122,7 +108,7 @@ Decisões locked-in. Cada escolha justificada vs alternativa avaliada (ver pesqu
                             │
                   ┌─────────▼──────────┐
                   │  Pre-dedup hash    │  exact dedup por SHA-256
-                  │  (Q6 pré)          │  remove duplicatas binárias
+                  │  (binária)         │  remove duplicatas binárias
                   └─────────┬──────────┘
                             │
                     ┌───────▼───────┐
@@ -159,7 +145,7 @@ Decisões locked-in. Cada escolha justificada vs alternativa avaliada (ver pesqu
                              │
                     ┌────────▼────────┐
                     │  Post-dedup     │  MinHash LSH (Jaccard ≥ 0.8)
-                    │  (Q6 pós)       │
+                    │  (semântica)    │
                     └────────┬────────┘
                              │
                     ┌────────▼────────┐
@@ -179,7 +165,7 @@ Decisões locked-in. Cada escolha justificada vs alternativa avaliada (ver pesqu
 ```
 corpus-prep/
 ├── PRD.md                              ← este arquivo
-├── README.md                           ← overview público + Q1, Q3, Q5
+├── README.md                           ← public overview + concepts
 ├── LICENSE                             ← MIT
 ├── pyproject.toml                      ← deps, metadata, scripts entry
 ├── .gitignore                          ← data/, .venv/, __pycache__
@@ -226,15 +212,15 @@ corpus-prep/
 │   └── test_pipeline_e2e.py
 │
 ├── notebooks/
-│   ├── q4_ftfy_examples.ipynb          ← demo Q4
-│   ├── q6_dedup_walkthrough.ipynb      ← visualizar dedup
-│   ├── q7_format_coverage.ipynb        ← rodar pipeline em corpus exemplo
-│   └── q8_duckdb_explore.ipynb         ← queries SQL em Parquet
+│   ├── ftfy_walkthrough.ipynb          ← mojibake gallery + normalize pipeline
+│   ├── dedup_walkthrough.ipynb         ← exact + MinHash dedup with examples
+│   ├── format_coverage.ipynb           ← pipeline run on a synthetic mini-corpus
+│   └── duckdb_exploration.ipynb        ← SQL recipes over the Parquet output
 │
 ├── docs/
 │   ├── research-notes.md               ← histórico das decisões + benchmarks
 │   ├── architecture.md                 ← diagrama detalhado + decision records
-│   └── refinedweb-summary.md           ← Q3 conceitual
+│   └── refinedweb-summary.md           ← summary of the RefinedWeb paper
 │
 └── scripts/
     ├── download_glotlid.sh             ← baixa modelo GlotLID v3
@@ -355,7 +341,7 @@ def normalize(text: str) -> str:
 3. Remove caracteres de controle (\x00-\x08, \x0B-\x1F) exceto \n e \t
 4. Colapsa whitespace múltiplo (regex `\s+` → ` `, mas preserva newlines duplos)
 
-**Testes:** Q4 do enunciado vira casos de teste explícitos.
+**Testes:** mojibake gallery + edge cases (NFC, control chars, whitespace).
 
 ---
 
@@ -517,18 +503,18 @@ class RunReport(BaseModel):
 
 ---
 
-## 9. Mapeamento atividade 03 → entregas
+## 9. Surface map (concept → artifact)
 
-| Item enunciado | Entrega no repo |
+| Concept / capability | Where in the repo |
 |---|---|
-| Q1 — Trafilatura | `README.md` seção "Conceitos"; uso real em `parsers/html_parser.py` |
-| Q2 — Parquet | `README.md` + `shard.py` + `notebooks/q8_duckdb_explore.ipynb` |
-| Q3 — RefinedWeb | `docs/refinedweb-summary.md` (~500 palavras + referência ao paper) |
-| Q4 — ftfy | `normalize.py` + `notebooks/q4_ftfy_examples.ipynb` (com casos de mojibake do enunciado) |
-| Q5 — Downstream | `README.md` seção "Casos de uso downstream" |
-| Q6 — Dedup pré/pós | `dedup.py` (`dedup_files` + `dedup_documents`) + `notebooks/q6_dedup_walkthrough.ipynb` |
-| Q7 — OCR + formatos | `parsers/` (9 formatos: PDF nativo, PDF scan, DOCX, PPTX, IMG, HTML, TXT, MD, CSV, JSON) + `notebooks/q7_format_coverage.ipynb` |
-| Q8 — DuckDB SQL | `notebooks/q8_duckdb_explore.ipynb` + comando `corpus-prep explore` |
+| Trafilatura HTML extraction | `parsers/html_parser.py` + concept note in `README.md` |
+| Apache Parquet output | `shard.py` + `notebooks/duckdb_exploration.ipynb` |
+| RefinedWeb pipeline summary | `docs/refinedweb-summary.md` |
+| Mojibake repair via ftfy | `normalize.py` + `notebooks/ftfy_walkthrough.ipynb` |
+| Downstream applications overview | `README.md` Concepts section |
+| Pre- and post-dedup | `dedup.py` (`dedup_files` + `dedup_documents`) + `notebooks/dedup_walkthrough.ipynb` |
+| OCR + multi-format ingestion | `parsers/` (9 formats) + `notebooks/format_coverage.ipynb` |
+| SQL exploration over Parquet | `notebooks/duckdb_exploration.ipynb` + `corpus-prep explore` |
 
 ---
 
@@ -569,7 +555,7 @@ class RunReport(BaseModel):
 
 - `dedup.py` exact (SHA-256 streaming)
 - `dedup.py` MinHash LSH com `text-dedup`
-- Notebook Q6 demonstrando ambos
+- `dedup_walkthrough.ipynb` demonstrando ambos
 - Teste com casos de duplicatas exatas e near-duplicates
 
 ### Milestone 5 — Shard + pipeline (1 dia)
@@ -582,8 +568,8 @@ class RunReport(BaseModel):
 ### Milestone 6 — CLI + notebooks (0.5 dia)
 
 - `cli.py` com typer
-- 4 notebooks (Q4, Q6, Q7, Q8)
-- README final com seções conceituais (Q1, Q3, Q5)
+- 4 notebooks (`ftfy_walkthrough`, `dedup_walkthrough`, `format_coverage`, `duckdb_exploration`)
+- README final com seções conceituais (Trafilatura, Parquet, ftfy, downstream)
 - `docs/refinedweb-summary.md`
 
 ### Milestone 7 — Polish (0.5 dia)
@@ -607,8 +593,8 @@ class RunReport(BaseModel):
 - `teste.docx`, `slides.pptx` — gerados via python-docx, python-pptx
 - `pagina.html` — snapshot real de uma página com boilerplate
 - `imagem.png` — print de texto para OCR
-- `mojibake.txt` — texto com encoding quebrado para Q4
-- `duplicata-exata.txt`, `near-duplicate.txt` — para Q6
+- `mojibake.txt` — texto com encoding quebrado para os testes de normalização
+- `duplicata-exata.txt`, `near-duplicate.txt` — para os testes de dedup
 
 Script `scripts/make_test_corpus.py` regenera fixtures sintéticas.
 
@@ -655,7 +641,7 @@ Script `scripts/make_test_corpus.py` regenera fixtures sintéticas.
 | faster-whisper / áudio fora do escopo v1 | 2026-05-03 | Pedido explícito do usuário; reduz GPU |
 | Pipeline síncrono (não async) | 2026-05-03 | Concorrência via ProcessPoolExecutor; menos cerimônia que asyncio |
 | Output Parquet único formato em v1 | 2026-05-03 | Padrão HF Datasets; JSONL pode vir em v2 |
-| `corpus-prep` como nome | 2026-05-03 | Genérico, não amarra a UFPI; sobreviverá ao curso |
+| `corpus-prep` como nome | 2026-05-03 | Genérico, não amarra a um domínio específico |
 
 ---
 

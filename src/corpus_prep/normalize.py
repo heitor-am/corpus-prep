@@ -1,7 +1,7 @@
 """Text normalization: encoding fix + Unicode NFC + cleanup.
 
-Covers Q4 of UFPI activity 03 (ftfy) and cleans up control chars / whitespace
-introduced by PDFs and OCR. Applied to each Document before filtering.
+Repairs mojibake via ftfy and cleans up control chars / whitespace introduced
+by PDFs and OCR. Applied to each Document before filtering.
 """
 
 from __future__ import annotations

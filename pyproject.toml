@@ -62,6 +62,8 @@ dev = [
     "pillow>=11.0",
     # Sample-corpus fetcher (Google Drive, no OAuth)
     "gdown>=6.0",
+    # Notebooks: DuckDB fetchdf() returns pandas DataFrames
+    "pandas>=2.2",
 ]
 
 [project.scripts]

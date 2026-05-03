@@ -1,7 +1,5 @@
 """Deduplication: exact (SHA-256 streaming) and MinHash LSH near-dedup.
 
-Covers Q6 of UFPI activity 03 (pre- and post-processed dedup).
-
 Pre-dedup
     Removes byte-identical files before parsing. Useful when an inbox contains
     multiple copies of the same PDF under different names.

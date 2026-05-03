@@ -1,4 +1,4 @@
-"""Tests for normalization (UFPI activity 03 Q4 + edge cases)."""
+"""Tests for the normalization pipeline."""
 
 from __future__ import annotations
 
@@ -6,10 +6,10 @@ from corpus_prep.normalize import normalize
 
 
 class TestFTFYIntegration:
-    """Mojibake cases lifted from the activity 03 Q4 prompt."""
+    """Common mojibake patterns and their expected repairs."""
 
     def test_fixes_common_pt_mojibake(self):
-        # Inputs are deliberately corrupted PT samples — that's the point of Q4.
+        # Inputs are deliberately corrupted PT samples to exercise ftfy.
         cases = {
             "Ã©": "é",
             "Ã£o": "ão",

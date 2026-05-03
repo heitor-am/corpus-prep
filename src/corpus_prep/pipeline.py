@@ -11,8 +11,8 @@ Stages (in order):
     7. shard         — write Parquet shards + manifest.json
 
 Concurrency is intentionally not used here: parser singletons (Magika, Docling)
-re-init per process and Document pickling adds friction. For the UFPI activity
-03 corpus scale (hundreds of MB), single-process is fast enough. A future
+re-init per process and Document pickling adds friction. At the typical corpus
+scale this targets (hundreds of MB), single-process is fast enough. A future
 ProcessPoolExecutor variant can sit behind a ``concurrent=True`` flag.
 """
 
