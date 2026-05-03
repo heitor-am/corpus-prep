@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from corpus_prep.filter import (
     DEFAULT_PT_LABEL,
     FilterConfig,
-    FilterResult,
     is_valid,
 )
 
@@ -19,7 +18,7 @@ class MockLangPredictor:
     label: str = DEFAULT_PT_LABEL
     confidence: float = 0.99
 
-    def predict(self, text: str) -> tuple[str, float]:  # noqa: ARG002
+    def predict(self, text: str) -> tuple[str, float]:
         return self.label, self.confidence
 
 

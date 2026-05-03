@@ -21,7 +21,7 @@ from __future__ import annotations
 import time
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -181,7 +181,7 @@ class Pipeline:
         """Run detect -> parse -> normalize -> filter for a single file."""
         try:
             mime = detect_mime(path)
-        except Exception as exc:  # noqa: BLE001 — orchestrator must catch all
+        except Exception as exc:
             report.parse_failures.append(
                 ParseFailure(path, "detect", type(exc).__name__, str(exc))
             )
@@ -202,7 +202,7 @@ class Pipeline:
                 ParseFailure(path, parser.name, "ParserError", str(exc))
             )
             return None
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             report.parse_failures.append(
                 ParseFailure(path, parser.name, type(exc).__name__, str(exc))
             )
@@ -236,7 +236,7 @@ class Pipeline:
             parser=result.parser_name,
             sha256=file_sha256(path),
             char_count=len(normalized_text),
-            extracted_at=datetime.now(timezone.utc),
+            extracted_at=datetime.now(UTC),
             language=language,
             language_confidence=confidence,
             metadata=result.metadata,

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from corpus_prep.dedup import (
@@ -25,7 +25,7 @@ def _doc(text: str, sha: str | None = None) -> Document:
         parser="plaintext",
         sha256=sha or ("a" * 64),
         char_count=len(text),
-        extracted_at=datetime.now(timezone.utc),
+        extracted_at=datetime.now(UTC),
     )
 
 

@@ -49,8 +49,10 @@ class TestPDFNativeParser:
         float(result.metadata["chars_per_page"])
 
     def test_invalid_pdf_raises(self, write_file):
+        from corpus_prep.parsers.base import ParserError
+
         path = write_file("notapdf.pdf", b"this is not a PDF")
-        with pytest.raises(Exception):  # pymupdf raises FileDataError or similar
+        with pytest.raises(ParserError, match="pymupdf failed to open PDF"):
             PDFNativeParser().parse(path)
 
     def test_supported_mime_types(self):

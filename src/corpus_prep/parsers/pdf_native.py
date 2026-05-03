@@ -36,12 +36,12 @@ class PDFNativeParser(BaseParser):
 
     def parse(self, path: Path) -> ParseResult:
         try:
-            doc = pymupdf.open(str(path))
+            doc = pymupdf.open(str(path))  # type: ignore[no-untyped-call]
         except Exception as exc:
             raise ParserError(path, f"pymupdf failed to open PDF: {exc}") from exc
 
         page_count = len(doc)
-        doc.close()
+        doc.close()  # type: ignore[no-untyped-call]
 
         try:
             text = pymupdf4llm.to_markdown(str(path))

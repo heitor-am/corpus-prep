@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -40,7 +40,7 @@ class TestDocument:
             "parser": "plaintext",
             "sha256": "a" * 64,
             "char_count": 11,
-            "extracted_at": datetime.now(timezone.utc),
+            "extracted_at": datetime.now(UTC),
         }
         return Document(**(defaults | overrides))
 

@@ -20,7 +20,7 @@ import hashlib
 import json
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from types import TracebackType
 from typing import Any
@@ -109,7 +109,7 @@ def docs_to_table(docs: Iterable[Document]) -> pa.Table:
             "mime": [d.mime for d in rows],
             "parser": [d.parser for d in rows],
             "extracted_at": [
-                d.extracted_at.astimezone(timezone.utc) for d in rows
+                d.extracted_at.astimezone(UTC) for d in rows
             ],
             "char_count": [d.char_count for d in rows],
             "language": [d.language for d in rows],
@@ -181,7 +181,7 @@ class ShardWriter:
             self._flush()
         self.manifest = ShardManifest(
             schema_version=SCHEMA_VERSION,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             total_documents=self._total_documents,
             total_chars=self._total_chars,
             shards=self._shards,
@@ -213,7 +213,7 @@ class ShardWriter:
         shard_path = self.output_dir / shard_name
 
         table = docs_to_table(self._buffer)
-        pq.write_table(
+        pq.write_table(  # type: ignore[no-untyped-call]
             table,
             shard_path,
             compression=self.compression,

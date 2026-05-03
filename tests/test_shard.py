@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pyarrow.parquet as pq
@@ -29,7 +29,7 @@ def _doc(text: str, **overrides) -> Document:
         "parser": "plaintext",
         "sha256": "a" * 64,
         "char_count": len(text),
-        "extracted_at": datetime.now(timezone.utc),
+        "extracted_at": datetime.now(UTC),
         "language": "por_Latn",
         "language_confidence": 0.97,
         "metadata": {"key": "value"},

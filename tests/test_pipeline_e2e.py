@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pyarrow.parquet as pq
-import pytest
 
 from corpus_prep.filter import DEFAULT_PT_LABEL, FilterConfig
 from corpus_prep.pipeline import Pipeline, PipelineConfig
@@ -24,7 +23,7 @@ class MockLangPredictor:
     label: str = DEFAULT_PT_LABEL
     confidence: float = 0.99
 
-    def predict(self, text: str) -> tuple[str, float]:  # noqa: ARG002
+    def predict(self, text: str) -> tuple[str, float]:
         return self.label, self.confidence
 
 
@@ -113,7 +112,7 @@ class TestPipelineE2E:
     def test_parquet_content_matches(self, tmp_path):
         input_dir = tmp_path / "in"
         output_dir = tmp_path / "out"
-        files = _mk_corpus(input_dir)
+        _mk_corpus(input_dir)
 
         config = PipelineConfig(
             input_dir=input_dir,
