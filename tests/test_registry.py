@@ -19,16 +19,21 @@ from corpus_prep.schemas import ParseResult
 
 @pytest.fixture
 def clean_registry():
-    """Isola cada teste com um registry vazio, restaurando os parsers default depois."""
+    """Isola cada teste com um registry vazio, restaurando todos os parsers default depois."""
     _reset_registry_for_tests()
     yield
     _reset_registry_for_tests()
-    # Reimporta módulos default para reconstruir o registry global
     import importlib
 
-    from corpus_prep.parsers import textlike
+    from corpus_prep.parsers import (
+        docling_parser,
+        html_parser,
+        pdf_native,
+        textlike,
+    )
 
-    importlib.reload(textlike)
+    for module in [textlike, html_parser, pdf_native, docling_parser]:
+        importlib.reload(module)
 
 
 class _DummyParser(BaseParser):
@@ -83,8 +88,25 @@ class TestDefaultRegistration:
     """Sanity check: parsers default são registrados ao importar o pacote."""
 
     def test_textlike_parsers_registered(self):
-        # `corpus_prep.parsers` é importado pelo conftest indiretamente
         from corpus_prep import parsers  # noqa: F401
 
         for mime in ["text/plain", "text/markdown", "text/csv", "application/json"]:
+            assert is_supported(mime), f"{mime} deveria estar registrado"
+
+    def test_pdf_and_html_registered(self):
+        from corpus_prep import parsers  # noqa: F401
+
+        for mime in ["application/pdf", "text/html"]:
+            assert is_supported(mime), f"{mime} deveria estar registrado"
+
+    def test_docling_office_and_image_registered(self):
+        from corpus_prep import parsers  # noqa: F401
+
+        for mime in [
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "image/png",
+            "image/jpeg",
+            "image/tiff",
+        ]:
             assert is_supported(mime), f"{mime} deveria estar registrado"

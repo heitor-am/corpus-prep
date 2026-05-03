@@ -10,20 +10,7 @@ from pathlib import Path
 from corpus_prep.parsers.base import BaseParser, ParserError
 from corpus_prep.parsers.registry import register
 from corpus_prep.schemas import ParseResult
-
-
-def _read_text(path: Path) -> str:
-    """Lê arquivo de texto tentando UTF-8 e caindo para Latin-1.
-
-    Latin-1 é o fallback porque (a) é o encoding padrão de muitos sistemas brasileiros
-    legados e (b) decodifica qualquer byte sem levantar — encoding-fix posterior via ftfy
-    consegue recuperar mojibake gerado por essa estratégia.
-    """
-    raw = path.read_bytes()
-    try:
-        return raw.decode("utf-8")
-    except UnicodeDecodeError:
-        return raw.decode("latin-1")
+from corpus_prep.utils.io import read_text_with_fallback as _read_text
 
 
 @register("text/plain")

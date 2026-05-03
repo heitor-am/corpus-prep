@@ -57,6 +57,9 @@ dev = [
     "pre-commit>=4.0",
     "ipykernel>=6.29",
     "jupyter>=1.1",
+    # Test fixtures
+    "reportlab>=4.0",
+    "pillow>=11.0",
 ]
 
 [project.scripts]
