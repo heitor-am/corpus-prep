@@ -28,14 +28,35 @@ Sem APIs pagas. Sem serviços de terceiros. Roda em CPU. Detalhes em [`PRD.md` �
 
 ## Quickstart
 
-> Pendente — ver milestones em [`PRD.md` §10](./PRD.md#10-fases-de-implementação).
-
 ```bash
-# Em breve
-pip install -e .
-corpus-prep ingest data/raw -o data/corpus
-corpus-prep explore data/corpus
+# 1. Setup
+uv venv .venv
+source .venv/bin/activate
+uv pip install -e ".[dev]"
+
+# 2. Download the sample corpus (PT-BR diarios oficiais) into data/raw/
+./scripts/fetch_sample_corpus.sh
+
+# 3. (Optional) download the GlotLID v3 model used by the language filter
+./scripts/download_glotlid.sh
+
+# 4. Run the pipeline (CLI lands in M6)
+# corpus-prep ingest data/raw -o data/corpus
+# corpus-prep explore data/corpus
+
+# Until M6 ships, drive the pipeline programmatically:
+python -c "
+from pathlib import Path
+from corpus_prep.pipeline import run_pipeline, PipelineConfig
+config = PipelineConfig(
+    input_dir=Path('data/raw'),
+    output_dir=Path('data/corpus'),
+)
+print(run_pipeline(config))
+"
 ```
+
+The fetcher pulls from a public Google Drive folder via `gdown` — no OAuth required as long as the folder is shared with "Anyone with the link". Override the source by exporting `DRIVE_URL` before running. Drive applies per-IP rate limits on public-folder downloads; the script retries up to five times with backoff and `gdown` skips files already present, so re-running picks up where it left off.
 
 ## Cobertura da atividade 03
 
