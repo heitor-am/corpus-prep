@@ -6,7 +6,7 @@ Ingests heterogeneous files (PDF, DOCX, PPTX, HTML, images, plain text) and prod
 
 ## Status
 
-End-to-end pipeline + CLI shipped. See [`PRD.md`](./PRD.md) for the full spec and milestone breakdown.
+End-to-end pipeline + CLI shipped (v0.1.0).
 
 ## Stack
 
@@ -22,7 +22,7 @@ End-to-end pipeline + CLI shipped. See [`PRD.md`](./PRD.md) for the full spec an
 | Output | Apache Parquet (pyarrow, zstd) |
 | Exploration | DuckDB |
 
-Stack rationale and licensing notes in [`PRD.md` §5](./PRD.md#5-stack-tecnológica).
+All dependencies are open-source with permissive licenses. Runtime deps are listed in `pyproject.toml`.
 
 ## Quickstart
 
@@ -100,7 +100,7 @@ Parquet is a columnar binary format optimized for analytical reads. Compared to 
 - Ships an embedded schema, so consumers don't need an external definition.
 - Is the **default storage format** for HuggingFace Datasets and the most common shape for LLM training corpora.
 
-`corpus-prep` writes shards with the schema documented in [PRD §7.6](./PRD.md), zstd-compressed at level 3, rotated by document count. See [`docs/refinedweb-summary.md`](./docs/refinedweb-summary.md) for the dataset that popularized this stack.
+`corpus-prep` writes shards with an explicit schema (defined in `src/corpus_prep/shard.py`), zstd-compressed at level 3, rotated by document count. See [`docs/refinedweb-summary.md`](./docs/refinedweb-summary.md) for the dataset that popularized this stack.
 
 ### Mojibake and ftfy
 
@@ -140,7 +140,6 @@ For Brazilian official-journal corpora specifically, plausible downstream use ca
 
 ```
 corpus-prep/
-├── PRD.md
 ├── README.md                       <- you are here
 ├── pyproject.toml
 ├── docs/
@@ -180,7 +179,6 @@ mypy src
 
 ## References
 
-- [PRD](./PRD.md)
 - [The RefinedWeb Dataset for Falcon LLM — Penedo et al., 2023](https://arxiv.org/abs/2306.01116)
 - [Trafilatura](https://github.com/adbar/trafilatura)
 - [Docling](https://github.com/docling-project/docling)

@@ -53,3 +53,7 @@ models/
 # Local env vars
 .env
 .env.local
+
+# Local-only docs
+PRD.md
+CHANGELOG.md
