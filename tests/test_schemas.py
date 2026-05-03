@@ -1,4 +1,4 @@
-"""Testes dos schemas Pydantic e do helper uuid7."""
+"""Tests for the Pydantic schemas and the uuid7 helper."""
 
 from __future__ import annotations
 
@@ -15,31 +15,31 @@ from corpus_prep.utils.ids import uuid7
 
 class TestParseResult:
     def test_minimal(self):
-        result = ParseResult(text="oi", parser_name="x", char_count=2)
-        assert result.text == "oi"
+        result = ParseResult(text="hi", parser_name="x", char_count=2)
+        assert result.text == "hi"
         assert result.page_count is None
         assert result.metadata == {}
 
     def test_frozen(self):
-        result = ParseResult(text="oi", parser_name="x", char_count=2)
+        result = ParseResult(text="hi", parser_name="x", char_count=2)
         with pytest.raises(ValidationError):
-            result.text = "outro"  # type: ignore[misc]
+            result.text = "other"  # type: ignore[misc]
 
     def test_negative_char_count_rejected(self):
         with pytest.raises(ValidationError):
-            ParseResult(text="oi", parser_name="x", char_count=-1)
+            ParseResult(text="hi", parser_name="x", char_count=-1)
 
 
 class TestDocument:
     def _make(self, **overrides):
         defaults = {
             "id": uuid7(),
-            "text": "olá mundo",
+            "text": "hello world",
             "source_path": Path("a/b.txt"),
             "mime": "text/plain",
             "parser": "plaintext",
             "sha256": "a" * 64,
-            "char_count": 9,
+            "char_count": 11,
             "extracted_at": datetime.now(timezone.utc),
         }
         return Document(**(defaults | overrides))

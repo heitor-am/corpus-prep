@@ -1,4 +1,4 @@
-"""Parsers package — auto-importa cada módulo para popular o registry global."""
+"""Parsers package — auto-imports each module so the global registry gets populated."""
 
 from corpus_prep.parsers import (  # noqa: F401
     docling_parser,

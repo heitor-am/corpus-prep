@@ -1,4 +1,4 @@
-"""Testes do filter — usa LanguagePredictor mock para isolar dos modelos reais."""
+"""Tests for the filter module — uses a mock LanguagePredictor to skip real models."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from corpus_prep.filter import (
 
 @dataclass
 class MockLangPredictor:
-    """Predictor que sempre retorna o label e confidence configurados."""
+    """Predictor that always returns the configured label and confidence."""
 
     label: str = DEFAULT_PT_LABEL
     confidence: float = 0.99
@@ -24,7 +24,7 @@ class MockLangPredictor:
 
 
 def _long_pt_text(min_chars: int = 200) -> str:
-    """Gera texto PT-BR válido com chars > min e word diversity > threshold."""
+    """Generate a valid PT-BR text with chars > min and good word diversity."""
     return (
         "O processamento de linguagem natural permite que computadores "
         "compreendam o significado de textos escritos. Modelos modernos "
@@ -38,7 +38,7 @@ class TestLengthFilter:
         result = is_valid("texto curto", FilterConfig(min_chars=200), MockLangPredictor())
         assert result.passed is False
         assert result.rejected_by == "length"
-        # Length é o primeiro filtro: nem chega a chamar o LID
+        # Length is the first filter — it never reaches the LID.
         assert result.detected_language is None
 
     def test_long_enough_passes_length(self):
@@ -59,13 +59,13 @@ class TestLanguageFilter:
         assert result.language_confidence == 0.95
 
     def test_wrong_language_low_confidence_passes(self):
-        # Confidence abaixo de min_lang_confidence → não derruba
+        # Confidence below min_lang_confidence -> filter does not fire.
         result = is_valid(
             _long_pt_text(),
             FilterConfig(min_lang_confidence=0.5),
             MockLangPredictor(label="eng_Latn", confidence=0.3),
         )
-        # Passa porque confidence é baixa (LID incerto)
+        # Passes because LID is uncertain.
         assert result.passed is True
 
     def test_correct_language_passes(self):
@@ -76,7 +76,7 @@ class TestLanguageFilter:
 
 class TestRepetitionFilter:
     def test_low_diversity_rejected(self):
-        # 200+ chars mas vocabulário pobre
+        # 200+ chars but a single repeated word.
         text = "palavra " * 50
         result = is_valid(
             text, FilterConfig(min_unique_word_ratio=0.1), MockLangPredictor()
@@ -91,7 +91,7 @@ class TestRepetitionFilter:
 
 class TestCharRatioFilter:
     def test_too_many_non_alpha_rejected(self):
-        # Texto longo mas mais que 50% de não-alfa
+        # Long text but more than 50% non-alphabetic.
         text = "abc " + "1234567890 " * 50
         result = is_valid(
             text,
@@ -107,10 +107,10 @@ class TestCharRatioFilter:
 
 
 class TestFilterPriority:
-    """Filtros aplicados em ordem: length → language → repetition → char_ratio."""
+    """Filters apply in order: length -> language -> repetition -> char_ratio."""
 
     def test_length_short_circuits_language(self):
-        # Texto muito curto NÃO consulta o LID — short circuit
+        # A very short text must NOT consult the LID — short circuit.
         result = is_valid(
             "abc",
             FilterConfig(min_chars=200),

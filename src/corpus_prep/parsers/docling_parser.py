@@ -1,8 +1,8 @@
-"""Docling — multi-formato com OCR embutido (DOCX, PPTX, IMG, e fallback PDF).
+"""Docling — multi-format parser with embedded OCR (DOCX, PPTX, IMG, plus PDF fallback).
 
-Não registra `application/pdf` no registry global — pdf_native é o caller default
-para PDFs. Quando pdf_native sinaliza `needs_ocr=true`, o pipeline (M5) instancia
-DoclingParser diretamente e chama `.parse(pdf_path)`.
+Does not register ``application/pdf`` in the global registry — pdf_native is the
+default route for PDFs. When pdf_native flags ``needs_ocr=true``, the pipeline
+(M5) instantiates DoclingParser directly and calls ``.parse(pdf_path)``.
 """
 
 from __future__ import annotations
@@ -30,21 +30,21 @@ _converter: Any = None
 
 
 def _get_converter() -> DocumentConverter:
-    """Lazy singleton do DocumentConverter — init é caro (load de modelos)."""
+    """Lazy singleton of DocumentConverter — init is expensive (loads models)."""
     global _converter
     if _converter is None:
         try:
             from docling.document_converter import DocumentConverter
         except ImportError as exc:
             raise ImportError(
-                "Docling nao esta instalado. Rode: uv pip install docling"
+                "Docling is not installed. Run: uv pip install docling"
             ) from exc
         _converter = DocumentConverter()
     return _converter
 
 
 def _reset_converter_for_tests() -> None:
-    """Limpa o singleton — usado em testes."""
+    """Test-only helper to clear the singleton."""
     global _converter
     _converter = None
 
@@ -64,7 +64,7 @@ class DoclingParser(BaseParser):
         try:
             result = converter.convert(str(path))
         except Exception as exc:
-            raise ParserError(path, f"docling falhou: {exc}") from exc
+            raise ParserError(path, f"docling failed: {exc}") from exc
 
         text = result.document.export_to_markdown()
         return ParseResult(

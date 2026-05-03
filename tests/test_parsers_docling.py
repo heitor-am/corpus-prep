@@ -1,4 +1,4 @@
-"""Testes do DoclingParser. A instalação do docling é opt-in (pesada)."""
+"""Tests for DoclingParser. Docling install is opt-in (heavy)."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ slow = pytest.mark.slow
 
 
 class TestDoclingParserSmoke:
-    """Smoke tests que rodam sem docling instalado."""
+    """Smoke tests that run without docling installed."""
 
     def test_supported_mime_types(self):
         parser = DoclingParser()
@@ -41,7 +41,7 @@ class TestDoclingParserSmoke:
             assert isinstance(instance, DoclingParser)
 
     def test_pdf_not_registered_under_docling(self):
-        """PDF é roteado para pdf_native; docling fica reservado para fallback OCR."""
+        """PDF routes to pdf_native; docling stays reserved for the OCR fallback."""
         parser = get_parser("application/pdf")
         assert parser.name == "pdf-native"
 
@@ -57,10 +57,9 @@ class TestDoclingParserSmoke:
 @slow
 @pytest.mark.skipif(not DOCLING_INSTALLED, reason="docling not installed")
 class TestDoclingParserIntegration:
-    """Integração real com docling. Lento (carrega modelos no primeiro uso)."""
+    """Real docling integration. Slow (loads models on first use)."""
 
     def test_parse_image(self, tmp_path):
-        # Gera PNG simples com texto via PIL
         from PIL import Image, ImageDraw
 
         img_path = tmp_path / "sample.png"

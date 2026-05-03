@@ -1,4 +1,4 @@
-"""Fixtures compartilhadas entre os testes."""
+"""Shared fixtures."""
 
 from __future__ import annotations
 
@@ -9,10 +9,10 @@ import pytest
 
 @pytest.fixture
 def write_file(tmp_path: Path):
-    """Helper para criar arquivos temporários com conteúdo dado.
+    """Helper for creating temp files with given content.
 
-    Uso:
-        path = write_file("teste.txt", "conteúdo", encoding="utf-8")
+    Usage:
+        path = write_file("test.txt", "content", encoding="utf-8")
     """
 
     def _write(name: str, content: str | bytes, encoding: str = "utf-8") -> Path:
@@ -28,7 +28,7 @@ def write_file(tmp_path: Path):
 
 @pytest.fixture
 def make_native_pdf(tmp_path: Path):
-    """Cria um PDF com camada de texto usando ReportLab."""
+    """Create a PDF with a real text layer using ReportLab."""
     from reportlab.lib.pagesizes import A4
     from reportlab.pdfgen import canvas
 
@@ -49,9 +49,10 @@ def make_native_pdf(tmp_path: Path):
 
 @pytest.fixture
 def make_blank_pdf(tmp_path: Path):
-    """Cria um PDF sem texto extraível (só uma forma geométrica).
+    """Create a PDF with no extractable text (just a geometric shape).
 
-    Simula PDF escaneado: PyMuPDF4LLM extrai zero texto, disparando needs_ocr=true.
+    Simulates a scanned PDF: PyMuPDF4LLM extracts zero text, triggering
+    needs_ocr=true.
     """
     from reportlab.lib.pagesizes import A4
     from reportlab.pdfgen import canvas

@@ -1,35 +1,32 @@
-"""Filtros de qualidade e identificação de idioma.
+"""Quality and language filters.
 
 Pipeline:
-    1. min_chars      — descarta textos muito curtos
-    2. language       — descarta se idioma detectado != esperado (com confiança)
-    3. repetition     — descarta textos com vocabulário pobre (likely OCR garbage)
-    4. char_ratio     — descarta textos com muitos não-alfabéticos (likely OCR garbage)
+    1. min_chars      — drop documents that are too short
+    2. language       — drop when detected language != expected (above confidence)
+    3. repetition     — drop documents with poor vocabulary diversity (likely OCR garbage)
+    4. char_ratio     — drop documents dominated by non-alphabetic chars (likely OCR garbage)
 
-Cada descarte registra o motivo. O orquestrador (M5) agrega em FilterStats.
+Each rejection records its reason. The orchestrator (M5) aggregates these
+into FilterStats.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import Any, Protocol
 
-if TYPE_CHECKING:
-    pass
-
-
-# Default: GlotLID rotula PT-BR como 'por_Latn'.
+# Default: GlotLID labels Brazilian Portuguese as 'por_Latn'.
 DEFAULT_PT_LABEL = "por_Latn"
 DEFAULT_GLOTLID_PATH = Path("models/glotlid.bin")
 
-# Truncamento da entrada do FastText: GlotLID lida com sentenças, não documentos.
+# FastText input cap: GlotLID is trained on sentences, not full documents.
 LID_MAX_CHARS = 1000
 
 
 @dataclass(frozen=True)
 class FilterConfig:
-    """Configuração dos filtros de qualidade."""
+    """Configuration for the quality filters."""
 
     min_chars: int = 200
     expected_language: str = DEFAULT_PT_LABEL
@@ -40,7 +37,7 @@ class FilterConfig:
 
 @dataclass
 class FilterResult:
-    """Resultado da avaliação de um documento."""
+    """Outcome of evaluating a single document."""
 
     passed: bool
     rejected_by: str | None = None
@@ -49,18 +46,19 @@ class FilterResult:
 
 
 class LanguagePredictor(Protocol):
-    """Contrato para identificadores de idioma — facilita mock em testes."""
+    """Protocol for language identifiers — keeps tests easy to mock."""
 
     def predict(self, text: str) -> tuple[str, float]:
-        """Retorna (label, confidence) para o texto."""
+        """Return ``(label, confidence)`` for the input text."""
         ...
 
 
 class LanguageIdentifier:
-    """Wrapper sobre fasttext + modelo GlotLID v3.
+    """Thin wrapper around fasttext + the GlotLID v3 model.
 
-    GlotLID supera fasttext lid.176 em PT-BR e cobre 2102 idiomas. Modelo é
-    baixado via scripts/download_glotlid.sh para `models/glotlid.bin`.
+    GlotLID outperforms fasttext lid.176 on PT-BR and covers 2102 languages.
+    The model is fetched by ``scripts/download_glotlid.sh`` into
+    ``models/glotlid.bin``.
     """
 
     def __init__(self, model_path: Path = DEFAULT_GLOTLID_PATH) -> None:
@@ -72,18 +70,18 @@ class LanguageIdentifier:
             return
         if not self.model_path.exists():
             raise FileNotFoundError(
-                f"Modelo GlotLID nao encontrado em {self.model_path}. "
-                "Rode scripts/download_glotlid.sh primeiro."
+                f"GlotLID model not found at {self.model_path}. "
+                "Run scripts/download_glotlid.sh first."
             )
         import fasttext
 
         self._model = fasttext.load_model(str(self.model_path))
 
     def predict(self, text: str) -> tuple[str, float]:
-        """Retorna (label, confidence). Trunca texto a LID_MAX_CHARS.
+        """Return ``(label, confidence)``. Truncates input to LID_MAX_CHARS.
 
-        FastText espera entrada de uma única linha — qualquer newline embutido
-        é convertido em espaço.
+        FastText expects single-line input — embedded newlines are converted
+        to spaces.
         """
         self._load()
         sample = text.replace("\n", " ")[:LID_MAX_CHARS]
@@ -95,9 +93,9 @@ class LanguageIdentifier:
 def is_valid(
     text: str, config: FilterConfig, lang_id: LanguagePredictor
 ) -> FilterResult:
-    """Aplica os 4 filtros sequencialmente. Retorna FilterResult.
+    """Apply the four filters in order. Cheap filters run first.
 
-    A ordem é importante — filtros baratos primeiro (length antes de LID).
+    Length is checked before LID so we never invoke the model on garbage input.
     """
     if len(text) < config.min_chars:
         return FilterResult(passed=False, rejected_by="length")

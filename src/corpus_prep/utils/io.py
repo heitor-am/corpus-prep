@@ -1,4 +1,4 @@
-"""I/O helpers compartilhados entre parsers."""
+"""I/O helpers shared between parsers."""
 
 from __future__ import annotations
 
@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 def read_text_with_fallback(path: Path) -> str:
-    """Lê arquivo de texto tentando UTF-8 e caindo para Latin-1.
+    """Read a text file as UTF-8, falling back to Latin-1 on decode errors.
 
-    Latin-1 decodifica qualquer byte sem levantar — encoding-fix posterior
-    via ftfy consegue recuperar mojibake gerado por essa estratégia.
+    Latin-1 decodes any byte without raising — any mojibake produced this way
+    is recoverable downstream via ftfy in the normalize stage.
     """
     raw = path.read_bytes()
     try:

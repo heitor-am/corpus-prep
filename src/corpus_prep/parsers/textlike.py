@@ -1,4 +1,4 @@
-"""Parsers para formatos texto triviais: TXT, MD, CSV, JSON."""
+"""Parsers for trivial text formats: TXT, MD, CSV, JSON."""
 
 from __future__ import annotations
 
@@ -53,10 +53,10 @@ class MarkdownParser(BaseParser):
 
 @register("text/csv")
 class CSVParser(BaseParser):
-    """Converte CSV em uma representação textual `col: val | col: val` por linha.
+    """Convert CSV into a textual representation: ``col: val | col: val`` per row.
 
-    Esse formato preserva o contexto das colunas no texto extraído, o que ajuda
-    em tarefas downstream onde a relação chave-valor importa.
+    This format keeps column context inline with the value, which helps
+    downstream tasks where the key-value relationship matters.
     """
 
     @property
@@ -71,7 +71,7 @@ class CSVParser(BaseParser):
         raw = _read_text(path)
         reader = csv.DictReader(io.StringIO(raw))
         if reader.fieldnames is None:
-            raise ParserError(path, "CSV sem header")
+            raise ParserError(path, "CSV without header")
 
         lines = [
             " | ".join(f"{col}: {row.get(col, '')}" for col in reader.fieldnames)
@@ -88,7 +88,7 @@ class CSVParser(BaseParser):
 
 @register("application/json")
 class JSONParser(BaseParser):
-    """Serializa JSON com indentação e sem escape de caracteres não-ASCII (preserva PT)."""
+    """Serialize JSON with indent and ensure_ascii=False to preserve PT chars."""
 
     @property
     def name(self) -> str:
@@ -103,7 +103,7 @@ class JSONParser(BaseParser):
         try:
             obj = json.loads(raw)
         except json.JSONDecodeError as exc:
-            raise ParserError(path, f"JSON inválido: {exc.msg}") from exc
+            raise ParserError(path, f"invalid JSON: {exc.msg}") from exc
 
         text = json.dumps(obj, indent=2, ensure_ascii=False, sort_keys=False)
         return ParseResult(

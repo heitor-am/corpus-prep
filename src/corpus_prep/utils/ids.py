@@ -1,4 +1,4 @@
-"""UUID v7 (RFC 9562) — sortable IDs por timestamp."""
+"""UUID v7 (RFC 9562) — sortable IDs by creation timestamp."""
 
 from __future__ import annotations
 
@@ -8,9 +8,9 @@ from uuid import UUID
 
 
 def uuid7() -> UUID:
-    """Gera um UUIDv7 (sortable por tempo de criação).
+    """Generate a UUIDv7 (sortable by creation time).
 
-    Layout RFC 9562:
+    RFC 9562 layout:
         48 bits  unix_ts_ms
          4 bits  version (= 0b0111)
         12 bits  rand_a

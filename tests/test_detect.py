@@ -1,4 +1,4 @@
-"""Testes do MIME detection via Magika."""
+"""Tests for the Magika-based MIME detection."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from corpus_prep.detect import (
 
 @pytest.fixture(autouse=True)
 def _reset_magika_cache():
-    """Garante singleton limpo entre testes."""
+    """Ensure a clean singleton between tests."""
     _reset_cache_for_tests()
     yield
     _reset_cache_for_tests()
@@ -65,13 +65,13 @@ class TestDetectWithScore:
 
 class TestThreshold:
     def test_low_threshold_returns_native_mime(self, write_file):
-        # Threshold zero deve passar qualquer detecção
+        # Zero threshold lets any detection through.
         path = write_file("a.json", '{"x": 1}')
         mime = detect_mime(path, min_confidence=0.0)
         assert mime != FALLBACK_MIME
 
     def test_high_threshold_can_force_fallback(self, write_file):
-        # Threshold absurdo (1.1) força sempre fallback
+        # Absurd threshold (1.1) always forces fallback.
         path = write_file("a.json", '{"x": 1}')
         mime = detect_mime(path, min_confidence=1.1)
         assert mime == FALLBACK_MIME

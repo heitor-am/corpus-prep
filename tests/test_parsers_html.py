@@ -1,4 +1,4 @@
-"""Testes do HTMLParser (Trafilatura)."""
+"""Tests for the HTMLParser (Trafilatura)."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import pytest
 from corpus_prep.parsers.base import ParserError
 from corpus_prep.parsers.html_parser import HTMLParser
 
+# Sample data deliberately in PT to validate UTF-8 handling end-to-end.
 SAMPLE_HTML = """<!DOCTYPE html>
 <html>
 <head><title>Notícia</title></head>
@@ -34,7 +35,7 @@ class TestHTMLParser:
         assert "narrativa principal" in result.text
 
     def test_removes_boilerplate(self, write_file):
-        """Trafilatura deve remover nav/footer/aside na configuração default."""
+        """Trafilatura should drop nav/footer/aside under default settings."""
         path = write_file("page.html", SAMPLE_HTML)
         result = HTMLParser().parse(path)
 
@@ -53,12 +54,12 @@ class TestHTMLParser:
         </article></body></html>"""
         path = write_file("table.html", html)
         result = HTMLParser().parse(path)
-        # include_tables=True deve preservar célula
+        # include_tables=True must preserve a cell value.
         assert "val1" in result.text or "val2" in result.text
 
     def test_empty_html_raises(self, write_file):
         path = write_file("empty.html", "<html></html>")
-        with pytest.raises(ParserError, match="extrair"):
+        with pytest.raises(ParserError, match="extract"):
             HTMLParser().parse(path)
 
     def test_supported_mime_types(self):

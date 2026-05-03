@@ -1,7 +1,7 @@
-"""Normalização de texto: encoding fix + Unicode + cleanup.
+"""Text normalization: encoding fix + Unicode NFC + cleanup.
 
-Resolve a Q4 da atividade 03 (ftfy) e limpa caracteres de controle / whitespace
-que vem de PDFs e OCR. Aplicado em cada Document antes da filtragem.
+Covers Q4 of UFPI activity 03 (ftfy) and cleans up control chars / whitespace
+introduced by PDFs and OCR. Applied to each Document before filtering.
 """
 
 from __future__ import annotations
@@ -11,27 +11,27 @@ import unicodedata
 
 import ftfy
 
-# Caracteres de controle (0x00-0x08, 0x0B, 0x0C, 0x0E-0x1F).
-# Tab (0x09), LF (0x0A) e CR (0x0D) são preservados.
+# Control characters (0x00-0x08, 0x0B, 0x0C, 0x0E-0x1F).
+# Tab (0x09), LF (0x0A) and CR (0x0D) are preserved.
 _CONTROL_CHARS_RE = re.compile(r"[\x00-\x08\x0B\x0C\x0E-\x1F]")
 
-# Múltiplos espaços/tabs viram um espaço só (sem afetar newlines).
+# Multiple spaces/tabs collapse to a single space (newlines are not affected here).
 _INLINE_WHITESPACE_RE = re.compile(r"[ \t]+")
 
-# 3+ newlines consecutivos viram parágrafo único (\n\n).
+# 3+ consecutive newlines collapse to a single paragraph break (\n\n).
 _MULTI_NEWLINE_RE = re.compile(r"\n{3,}")
 
 
 def normalize(text: str) -> str:
-    """Pipeline de normalização de texto.
+    """Run the normalization pipeline.
 
-    Etapas (na ordem):
-        1. ftfy.fix_text — corrige mojibake (ex.: 'Ã©' → 'é').
-        2. NFC — normaliza decomposições Unicode (combinadores → forma composta).
-        3. Remove caracteres de controle (preservando tab/LF/CR).
-        4. Colapsa múltiplos espaços/tabs em um espaço.
-        5. Colapsa 3+ newlines em parágrafo (\\n\\n).
-        6. Strip de whitespace nas bordas.
+    Steps (in order):
+        1. ftfy.fix_text — fix mojibake (e.g. ``Ã©`` -> ``é``).
+        2. NFC — normalize decomposed Unicode (combining marks -> composed form).
+        3. Strip control characters (preserves tab/LF/CR).
+        4. Collapse runs of spaces/tabs into a single space.
+        5. Collapse 3+ newlines into a single paragraph break (\\n\\n).
+        6. Strip leading/trailing whitespace.
     """
     if not text:
         return ""

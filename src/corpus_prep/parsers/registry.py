@@ -1,4 +1,4 @@
-"""Registry pattern para roteamento de parsers por MIME type."""
+"""Registry pattern for routing parsers by MIME type."""
 
 from __future__ import annotations
 
@@ -11,9 +11,9 @@ _registry: dict[str, type[BaseParser]] = {}
 
 
 def register(*mime_types: str) -> Callable[[type[BaseParser]], type[BaseParser]]:
-    """Decorator que registra um parser para os MIME types informados.
+    """Decorator that registers a parser for the given MIME types.
 
-    Exemplo:
+    Example:
         @register("text/plain")
         class PlainTextParser(BaseParser): ...
     """
@@ -29,14 +29,14 @@ def register(*mime_types: str) -> Callable[[type[BaseParser]], type[BaseParser]]
 
 
 def get_parser(mime: str, *, source: Path | None = None) -> BaseParser:
-    """Retorna uma instância do parser registrado para `mime`.
+    """Return an instance of the parser registered for ``mime``.
 
     Args:
-        mime: MIME type (ex.: 'text/plain').
-        source: Path opcional; usado apenas para enriquecer o erro.
+        mime: MIME type (e.g. ``text/plain``).
+        source: Optional path used only to enrich the error.
 
     Raises:
-        UnsupportedFormatError: se nenhum parser estiver registrado.
+        UnsupportedFormatError: when no parser is registered for ``mime``.
     """
     cls = _registry.get(mime)
     if cls is None:
@@ -45,15 +45,15 @@ def get_parser(mime: str, *, source: Path | None = None) -> BaseParser:
 
 
 def list_supported_mimes() -> list[str]:
-    """Retorna os MIME types registrados, ordenados."""
+    """Return the registered MIME types, sorted."""
     return sorted(_registry.keys())
 
 
 def is_supported(mime: str) -> bool:
-    """Conveniência: existe parser registrado para `mime`?"""
+    """Convenience: is there a parser registered for ``mime``?"""
     return mime in _registry
 
 
 def _reset_registry_for_tests() -> None:
-    """Apenas para testes — limpa o registry global."""
+    """Test-only helper to clear the global registry."""
     _registry.clear()

@@ -1,4 +1,4 @@
-"""Testes dos parsers de formatos texto triviais."""
+"""Tests for the trivial text-format parsers."""
 
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ from corpus_prep.parsers.textlike import (
 
 class TestPlainTextParser:
     def test_utf8(self, write_file):
+        # Sample data intentionally in PT to exercise the encoding path.
         path = write_file("a.txt", "olá mundo, ção é fácil")
         result = PlainTextParser().parse(path)
         assert result.text == "olá mundo, ção é fácil"
@@ -26,7 +27,7 @@ class TestPlainTextParser:
     def test_latin1_fallback(self, write_file):
         path = write_file("a.txt", "olá mundo".encode("latin-1"))
         result = PlainTextParser().parse(path)
-        assert "olá mundo" in result.text  # latin-1 decodifica `á` corretamente
+        assert "olá mundo" in result.text  # latin-1 decodes 'á' correctly
 
     def test_empty_file(self, write_file):
         path = write_file("empty.txt", "")
@@ -37,7 +38,7 @@ class TestPlainTextParser:
 
 class TestMarkdownParser:
     def test_preserves_markdown(self, write_file):
-        content = "# Título\n\nParágrafo com **negrito** e [link](http://x).\n"
+        content = "# Title\n\nParagraph with **bold** and [link](http://x).\n"
         path = write_file("a.md", content)
         result = MarkdownParser().parse(path)
         assert result.text == content
@@ -46,11 +47,11 @@ class TestMarkdownParser:
 
 class TestCSVParser:
     def test_basic(self, write_file):
-        content = "nome,idade\nAna,30\nBob,25\n"
+        content = "name,age\nAna,30\nBob,25\n"
         path = write_file("a.csv", content)
         result = CSVParser().parse(path)
-        assert "nome: Ana | idade: 30" in result.text
-        assert "nome: Bob | idade: 25" in result.text
+        assert "name: Ana | age: 30" in result.text
+        assert "name: Bob | age: 25" in result.text
         assert result.metadata == {"rows": "2", "columns": "2"}
 
     def test_preserves_pt_chars(self, write_file):
@@ -61,19 +62,19 @@ class TestCSVParser:
 
     def test_empty_csv_raises(self, write_file):
         path = write_file("a.csv", "")
-        with pytest.raises(ParserError, match="sem header"):
+        with pytest.raises(ParserError, match="without header"):
             CSVParser().parse(path)
 
 
 class TestJSONParser:
     def test_object(self, write_file):
+        # Sample with PT content to confirm ensure_ascii=False preserves accents.
         obj = {"nome": "Ação", "items": [1, 2, 3]}
         path = write_file("a.json", json.dumps(obj))
         result = JSONParser().parse(path)
-        # ensure_ascii=False preserva caracteres PT
         assert "Ação" in result.text
         assert '"items"' in result.text
-        # indentação aplicada
+        # Indentation applied
         assert "  " in result.text
 
     def test_array(self, write_file):
@@ -84,5 +85,5 @@ class TestJSONParser:
 
     def test_invalid_raises(self, write_file):
         path = write_file("bad.json", "{not json")
-        with pytest.raises(ParserError, match="inválido"):
+        with pytest.raises(ParserError, match="invalid JSON"):
             JSONParser().parse(path)

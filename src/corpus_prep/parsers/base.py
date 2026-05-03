@@ -1,4 +1,4 @@
-"""Interface base para parsers."""
+"""Base interface for parsers."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from corpus_prep.schemas import ParseResult
 
 
 class ParserError(Exception):
-    """Falha durante parsing. Inclui o path para diagnóstico."""
+    """Raised when parsing fails. Includes the path for diagnostics."""
 
     def __init__(self, path: Path, message: str) -> None:
         super().__init__(f"{path}: {message}")
@@ -17,7 +17,7 @@ class ParserError(Exception):
 
 
 class UnsupportedFormatError(ParserError):
-    """MIME type não tem parser registrado."""
+    """No parser is registered for the given MIME type."""
 
     def __init__(self, path: Path, mime: str) -> None:
         super().__init__(path, f"unsupported MIME type: {mime}")
@@ -25,26 +25,27 @@ class UnsupportedFormatError(ParserError):
 
 
 class BaseParser(ABC):
-    """Contrato para todos os parsers do registry.
+    """Contract for every parser in the registry.
 
-    Parsers são síncronos e não-stateful — instâncias podem ser descartadas após uso.
-    Concorrência fica a cargo do orquestrador (ProcessPoolExecutor).
+    Parsers are synchronous and stateless — instances are disposable after a
+    single parse call. Concurrency is the orchestrator's job
+    (ProcessPoolExecutor in pipeline.py).
     """
 
     @property
     @abstractmethod
     def name(self) -> str:
-        """Identificador estável do parser. Vai parar no campo `parser` do Document."""
+        """Stable identifier of the parser. Stored on the Document.parser field."""
 
     @property
     @abstractmethod
     def supported_mime_types(self) -> list[str]:
-        """MIME types que este parser declara suportar."""
+        """MIME types this parser declares support for."""
 
     @abstractmethod
     def parse(self, path: Path) -> ParseResult:
-        """Lê o arquivo em `path` e retorna o ParseResult.
+        """Read the file at ``path`` and return a ParseResult.
 
         Raises:
-            ParserError: se o arquivo não puder ser processado.
+            ParserError: when the file cannot be processed.
         """

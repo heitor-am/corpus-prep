@@ -1,4 +1,4 @@
-"""HTML parser via Trafilatura — extrai conteúdo principal removendo boilerplate."""
+"""HTML parser via Trafilatura — extracts main content while removing boilerplate."""
 
 from __future__ import annotations
 
@@ -14,9 +14,9 @@ from corpus_prep.utils.io import read_text_with_fallback
 
 @register("text/html")
 class HTMLParser(BaseParser):
-    """Trafilatura é o atual SOTA (F1 0.945) para extração de conteúdo principal.
+    """Trafilatura is the current SOTA (F1 0.945) for main-content extraction.
 
-    Usado também no pipeline RefinedWeb (Falcon LLM) e HuggingFace datatrove.
+    Used by the RefinedWeb pipeline (Falcon LLM) and HuggingFace datatrove.
     """
 
     @property
@@ -36,7 +36,7 @@ class HTMLParser(BaseParser):
             include_tables=True,
         )
 
-        # Fallback: páginas sem main-content evidente respondem melhor com favor_recall.
+        # Fallback: pages without an obvious main element respond better with favor_recall.
         if text is None:
             text = trafilatura.extract(
                 html,
@@ -47,7 +47,7 @@ class HTMLParser(BaseParser):
 
         if text is None:
             raise ParserError(
-                path, "trafilatura nao conseguiu extrair conteudo principal"
+                path, "trafilatura could not extract main content"
             )
 
         return ParseResult(

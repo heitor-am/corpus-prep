@@ -1,7 +1,7 @@
-"""Pydantic models para o pipeline de extração.
+"""Pydantic models for the extraction pipeline.
 
-Spec completa em PRD.md §8. Esta versão (M1) inclui apenas ParseResult e Document.
-Schemas adicionais (FilterStats, RunReport, ShardManifest) virão nos milestones 4-5.
+Full spec in PRD.md section 8. This M1 cut only includes ParseResult and
+Document. FilterStats, RunReport and ShardManifest land in M4-M5.
 """
 
 from __future__ import annotations
@@ -14,39 +14,39 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class ParseResult(BaseModel):
-    """Output de um parser sobre um único arquivo."""
+    """Output of a single parser invocation on one file."""
 
     model_config = ConfigDict(frozen=True)
 
-    text: str = Field(description="Texto extraído (cru, antes de normalização).")
-    parser_name: str = Field(description="Nome do parser que gerou este resultado.")
-    char_count: int = Field(ge=0, description="Contagem de caracteres em text.")
+    text: str = Field(description="Extracted text (raw, before normalization).")
+    parser_name: str = Field(description="Name of the parser that produced this result.")
+    char_count: int = Field(ge=0, description="Character count of text.")
     page_count: int | None = Field(
-        default=None, ge=0, description="Páginas/slides quando aplicável."
+        default=None, ge=0, description="Pages or slides when applicable."
     )
     metadata: dict[str, str] = Field(
         default_factory=dict,
-        description="Metadados específicos do parser. Valores sempre como str para Parquet.",
+        description="Parser-specific metadata. Values must be str for Parquet output.",
     )
 
 
 class Document(BaseModel):
-    """Entidade canônica do corpus, pronta para ser escrita em Parquet."""
+    """Canonical corpus entity, ready to be written to Parquet."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    id: UUID = Field(description="UUIDv7 sortable por timestamp de extração.")
-    text: str = Field(description="Texto normalizado e pronto para o corpus.")
-    source_path: Path = Field(description="Path original (relativo ao input dir).")
-    mime: str = Field(description="MIME type detectado por Magika.")
-    parser: str = Field(description="Nome do parser usado.")
+    id: UUID = Field(description="UUIDv7 sortable by extraction timestamp.")
+    text: str = Field(description="Normalized text ready for the corpus.")
+    source_path: Path = Field(description="Original path (relative to input dir).")
+    mime: str = Field(description="MIME type detected by Magika.")
+    parser: str = Field(description="Name of the parser used.")
     sha256: str = Field(
-        min_length=64, max_length=64, description="SHA-256 do arquivo original."
+        min_length=64, max_length=64, description="SHA-256 of the original binary."
     )
     char_count: int = Field(ge=0)
     extracted_at: datetime
     language: str | None = Field(
-        default=None, description="Código GlotLID (ex.: 'por_Latn')."
+        default=None, description="GlotLID label (e.g. 'por_Latn')."
     )
     language_confidence: float | None = Field(default=None, ge=0.0, le=1.0)
     metadata: dict[str, str] = Field(default_factory=dict)

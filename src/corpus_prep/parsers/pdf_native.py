@@ -1,4 +1,4 @@
-"""PDF parser para PDFs com camada de texto (selecionável), via PyMuPDF4LLM."""
+"""PDF parser for PDFs with a selectable text layer, via PyMuPDF4LLM."""
 
 from __future__ import annotations
 
@@ -11,19 +11,19 @@ from corpus_prep.parsers.base import BaseParser, ParserError
 from corpus_prep.parsers.registry import register
 from corpus_prep.schemas import ParseResult
 
-# Heurística: PDFs escaneados raramente extraem texto suficiente.
-# Threshold em chars/página vem do PRD §7.2.3.
+# Heuristic: scanned PDFs rarely yield enough native text per page.
+# Threshold (chars per page) comes from PRD section 7.2.3.
 SPARSE_THRESHOLD_CHARS_PER_PAGE = 100.0
 
 
 @register("application/pdf")
 class PDFNativeParser(BaseParser):
-    """PDFs com camada de texto extraem instantaneamente via PyMuPDF.
+    """PDFs with a real text layer extract instantly via PyMuPDF.
 
-    PDFs escaneados (sem camada de texto) produzem `chars_per_page` baixo;
-    o parser marca `metadata.needs_ocr=true` e o pipeline (M5) re-roteia
-    para DoclingParser. Em M2 a flag fica disponível mas o reroteamento é
-    responsabilidade do orquestrador, não do parser.
+    Scanned PDFs (no text layer) yield a low ``chars_per_page`` ratio; this
+    parser sets ``metadata.needs_ocr=true`` so the pipeline (M5) can re-route
+    to DoclingParser. In M2 the flag is exposed but the rerouting itself is
+    the orchestrator's responsibility, not the parser's.
     """
 
     @property
@@ -38,7 +38,7 @@ class PDFNativeParser(BaseParser):
         try:
             doc = pymupdf.open(str(path))
         except Exception as exc:
-            raise ParserError(path, f"pymupdf falhou ao abrir PDF: {exc}") from exc
+            raise ParserError(path, f"pymupdf failed to open PDF: {exc}") from exc
 
         page_count = len(doc)
         doc.close()
@@ -46,7 +46,7 @@ class PDFNativeParser(BaseParser):
         try:
             text = pymupdf4llm.to_markdown(str(path))
         except Exception as exc:
-            raise ParserError(path, f"pymupdf4llm.to_markdown falhou: {exc}") from exc
+            raise ParserError(path, f"pymupdf4llm.to_markdown failed: {exc}") from exc
 
         char_count = len(text)
         chars_per_page = char_count / page_count if page_count > 0 else 0.0

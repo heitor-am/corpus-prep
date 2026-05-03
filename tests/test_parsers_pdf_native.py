@@ -1,4 +1,4 @@
-"""Testes do PDFNativeParser (PyMuPDF4LLM)."""
+"""Tests for the PDFNativeParser (PyMuPDF4LLM)."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from corpus_prep.parsers.pdf_native import (
 
 class TestPDFNativeParser:
     def test_native_pdf_with_text(self, make_native_pdf):
-        # Texto suficientemente longo para passar do threshold de chars/page
+        # Long enough to clear the chars-per-page threshold.
         long_text = "\n".join(
             [
                 "Hello world testing extraction in PDF format with native text layer.",
@@ -36,7 +36,7 @@ class TestPDFNativeParser:
         result = PDFNativeParser().parse(path)
 
         assert result.page_count == 1
-        # PDF em branco não tem texto extraível → chars_per_page = 0
+        # Blank PDF has no extractable text -> chars_per_page = 0.
         assert result.char_count < SPARSE_THRESHOLD_CHARS_PER_PAGE
         assert result.metadata["needs_ocr"] == "true"
         assert float(result.metadata["chars_per_page"]) < SPARSE_THRESHOLD_CHARS_PER_PAGE
@@ -45,7 +45,7 @@ class TestPDFNativeParser:
         path = make_native_pdf(text="Some text on the page.")
         result = PDFNativeParser().parse(path)
         assert "chars_per_page" in result.metadata
-        # Deve ser parseável como float
+        # Must be parseable as float.
         float(result.metadata["chars_per_page"])
 
     def test_invalid_pdf_raises(self, write_file):

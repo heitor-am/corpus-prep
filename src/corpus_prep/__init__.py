@@ -1,3 +1,3 @@
-"""corpus-prep — pipeline open-source de preparação de corpus para LLMs em PT-BR."""
+"""corpus-prep — open-source pipeline for preparing PT-BR LLM training corpora."""
 
 __version__ = "0.1.0"

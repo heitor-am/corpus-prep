@@ -1,4 +1,4 @@
-"""Testes do Registry pattern."""
+"""Tests for the Registry pattern."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from corpus_prep.schemas import ParseResult
 
 @pytest.fixture
 def clean_registry():
-    """Isola cada teste com um registry vazio, restaurando todos os parsers default depois."""
+    """Isolate each test with an empty registry, restoring all default parsers afterwards."""
     _reset_registry_for_tests()
     yield
     _reset_registry_for_tests()
@@ -85,19 +85,19 @@ class TestRegister:
 
 
 class TestDefaultRegistration:
-    """Sanity check: parsers default são registrados ao importar o pacote."""
+    """Sanity check: default parsers register themselves on import."""
 
     def test_textlike_parsers_registered(self):
         from corpus_prep import parsers  # noqa: F401
 
         for mime in ["text/plain", "text/markdown", "text/csv", "application/json"]:
-            assert is_supported(mime), f"{mime} deveria estar registrado"
+            assert is_supported(mime), f"{mime} should be registered"
 
     def test_pdf_and_html_registered(self):
         from corpus_prep import parsers  # noqa: F401
 
         for mime in ["application/pdf", "text/html"]:
-            assert is_supported(mime), f"{mime} deveria estar registrado"
+            assert is_supported(mime), f"{mime} should be registered"
 
     def test_docling_office_and_image_registered(self):
         from corpus_prep import parsers  # noqa: F401
@@ -109,4 +109,4 @@ class TestDefaultRegistration:
             "image/jpeg",
             "image/tiff",
         ]:
-            assert is_supported(mime), f"{mime} deveria estar registrado"
+            assert is_supported(mime), f"{mime} should be registered"
