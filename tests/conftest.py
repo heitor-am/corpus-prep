@@ -66,3 +66,67 @@ def make_blank_pdf(tmp_path: Path):
         return path
 
     return _make
+
+
+@pytest.fixture
+def make_docx(tmp_path: Path):
+    """Create a small DOCX via python-docx."""
+
+    def _make(name: str = "sample.docx", paragraphs: list[str] | None = None) -> Path:
+        from docx import Document as DocxDocument
+
+        doc = DocxDocument()
+        for line in paragraphs or [
+            "Title of the test document",
+            "First paragraph with some content for parsing.",
+            "Second paragraph adds more substance.",
+        ]:
+            doc.add_paragraph(line)
+        path = tmp_path / name
+        doc.save(str(path))
+        return path
+
+    return _make
+
+
+@pytest.fixture
+def make_pptx(tmp_path: Path):
+    """Create a small PPTX via python-pptx."""
+
+    def _make(name: str = "sample.pptx", slides: list[tuple[str, str]] | None = None) -> Path:
+        from pptx import Presentation
+
+        prs = Presentation()
+        for title, body in slides or [
+            ("Test deck", "Slide one body text"),
+            ("Second slide", "Slide two body text"),
+        ]:
+            slide = prs.slides.add_slide(prs.slide_layouts[1])
+            slide.shapes.title.text = title
+            slide.placeholders[1].text = body
+        path = tmp_path / name
+        prs.save(str(path))
+        return path
+
+    return _make
+
+
+@pytest.fixture
+def make_text_image(tmp_path: Path):
+    """Create a PNG with rendered text via PIL."""
+
+    def _make(
+        name: str = "sample.png",
+        text: str = "Hello world from corpus-prep",
+        size: tuple[int, int] = (600, 200),
+    ) -> Path:
+        from PIL import Image, ImageDraw
+
+        img = Image.new("RGB", size, color="white")
+        draw = ImageDraw.Draw(img)
+        draw.text((20, 60), text, fill="black")
+        path = tmp_path / name
+        img.save(path)
+        return path
+
+    return _make

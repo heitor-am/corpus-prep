@@ -40,7 +40,7 @@ def _get_converter() -> DocumentConverter:
                 "Docling is not installed. Run: uv pip install docling"
             ) from exc
         _converter = DocumentConverter()
-    return _converter
+    return _converter  # type: ignore[no-any-return]
 
 
 def _reset_converter_for_tests() -> None:

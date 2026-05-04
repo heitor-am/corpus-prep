@@ -60,6 +60,8 @@ dev = [
     # Test fixtures
     "reportlab>=4.0",
     "pillow>=11.0",
+    "python-docx>=1.2",
+    "python-pptx>=1.0",
     # Sample-corpus fetcher (Google Drive, no OAuth)
     "gdown>=6.0",
     # Notebooks: DuckDB fetchdf() returns pandas DataFrames
