@@ -112,6 +112,39 @@ def make_pptx(tmp_path: Path):
 
 
 @pytest.fixture
+def make_image_only_pdf(tmp_path: Path):
+    """Render text into an image and embed it in a PDF (no real text layer).
+
+    Simulates a scanned document: PyMuPDF extracts ~zero chars, triggering
+    needs_ocr=true; Docling fallback can OCR the image to recover the text.
+    """
+
+    def _make(name: str = "scanned.pdf", text: str = "Hello OCR world from corpus-prep") -> Path:
+        from io import BytesIO
+
+        from PIL import Image, ImageDraw
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.utils import ImageReader
+        from reportlab.pdfgen import canvas
+
+        img = Image.new("RGB", (1200, 400), color="white")
+        draw = ImageDraw.Draw(img)
+        draw.text((40, 80), text, fill="black")
+        buf = BytesIO()
+        img.save(buf, format="PNG")
+        buf.seek(0)
+
+        path = tmp_path / name
+        c = canvas.Canvas(str(path), pagesize=A4)
+        c.drawImage(ImageReader(buf), 50, 400, width=500, height=200)
+        c.showPage()
+        c.save()
+        return path
+
+    return _make
+
+
+@pytest.fixture
 def make_text_image(tmp_path: Path):
     """Create a PNG with rendered text via PIL."""
 

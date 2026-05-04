@@ -65,6 +65,13 @@ def ingest(
     no_progress: Annotated[
         bool, typer.Option("--no-progress", help="Hide the live progress bar.")
     ] = False,
+    no_ocr_fallback: Annotated[
+        bool,
+        typer.Option(
+            "--no-ocr-fallback",
+            help="Skip Docling OCR fallback for PDFs flagged needs_ocr.",
+        ),
+    ] = False,
 ) -> None:
     """Run the full ingest pipeline on INPUT_DIR.
 
@@ -83,6 +90,7 @@ def ingest(
         max_docs_per_shard=max_docs_per_shard,
         glotlid_path=glotlid,
         show_progress=not no_progress,
+        enable_ocr_fallback=not no_ocr_fallback,
     )
 
     console.print(f"[bold]Input :[/bold] {config.input_dir}")
@@ -111,6 +119,8 @@ def _print_run_report(report) -> None:  # type: ignore[no-untyped-def]
     table.add_row("after post-dedup", str(report.post_dedup_kept))
     if report.post_dedup_removed:
         table.add_row("post-dedup removed", str(report.post_dedup_removed))
+    if report.ocr_fallback_count:
+        table.add_row("OCR fallback fired", str(report.ocr_fallback_count))
     table.add_row("shards written", str(report.shards_written))
     table.add_row("total chars", f"{report.total_chars_written:,}")
     table.add_row("duration", f"{report.duration_seconds:.2f}s")

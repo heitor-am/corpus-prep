@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pyarrow.parquet as pq
+import pytest
 
 from corpus_prep.filter import DEFAULT_PT_LABEL, FilterConfig
 from corpus_prep.pipeline import Pipeline, PipelineConfig
@@ -25,6 +26,32 @@ class MockLangPredictor:
 
     def predict(self, text: str) -> tuple[str, float]:
         return self.label, self.confidence
+
+
+def _build_image_only_pdf(path: Path, text: str = "Hello OCR world from corpus-prep") -> Path:
+    """Render text into an image, embed in a PDF (no real text layer).
+
+    Used by the OCR fallback tests: PyMuPDF cannot extract the text, so the
+    pipeline either keeps the sparse result or routes to Docling depending on
+    the enable_ocr_fallback config.
+    """
+    from io import BytesIO
+
+    from PIL import Image, ImageDraw
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.utils import ImageReader
+    from reportlab.pdfgen import canvas
+
+    img = Image.new("RGB", (1200, 400), color="white")
+    ImageDraw.Draw(img).text((40, 80), text, fill="black")
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    c = canvas.Canvas(str(path), pagesize=A4)
+    c.drawImage(ImageReader(buf), 50, 400, width=500, height=200)
+    c.showPage()
+    c.save()
+    return path
 
 
 def _mk_corpus(input_dir: Path) -> dict[str, Path]:
@@ -198,6 +225,51 @@ class TestPipelineE2E:
         assert len(report.parse_failures) == 1
         # Either detect or registry stage; both are valid.
         assert report.parse_failures[0].stage in {"detect", "registry"}
+
+    def test_ocr_fallback_disabled_keeps_sparse_result(self, tmp_path):
+        """With enable_ocr_fallback=False, image-only PDFs stay sparse and untouched."""
+        input_dir = tmp_path / "in"
+        input_dir.mkdir()
+        _build_image_only_pdf(input_dir / "scanned.pdf")
+
+        config = PipelineConfig(
+            input_dir=input_dir,
+            output_dir=tmp_path / "out",
+            show_progress=False,
+            enable_filter=False,
+            enable_ocr_fallback=False,
+        )
+        report = Pipeline(config).run()
+
+        assert report.parsed == 1
+        assert report.ocr_fallback_count == 0
+
+    @pytest.mark.slow
+    def test_ocr_fallback_recovers_image_only_pdf(self, tmp_path):
+        """With Docling installed, image-only PDFs get OCR'd and produce real text."""
+        pytest.importorskip("docling")
+
+        input_dir = tmp_path / "in"
+        input_dir.mkdir()
+        _build_image_only_pdf(input_dir / "scanned.pdf")
+
+        config = PipelineConfig(
+            input_dir=input_dir,
+            output_dir=tmp_path / "out",
+            show_progress=False,
+            enable_filter=False,
+        )
+        report = Pipeline(config).run()
+
+        assert report.parsed == 1
+        assert report.ocr_fallback_count == 1
+        # Read the parquet shard back and confirm the OCR text shows up.
+        import pyarrow.parquet as pq
+
+        table = pq.read_table(tmp_path / "out" / "shard-0000.parquet")
+        assert table["parser"].to_pylist() == ["pdf-ocr-fallback"]
+        text = table["text"].to_pylist()[0]
+        assert "OCR" in text or "corpus-prep" in text
 
     def test_skips_files_inside_output_dir(self, tmp_path):
         """When output_dir lives inside input_dir, prior shards must not be re-ingested."""

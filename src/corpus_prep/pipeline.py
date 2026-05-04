@@ -51,7 +51,7 @@ from corpus_prep.parsers import (
     UnsupportedFormatError,
     get_parser,
 )
-from corpus_prep.schemas import Document
+from corpus_prep.schemas import Document, ParseResult
 from corpus_prep.shard import ShardWriter
 from corpus_prep.utils.ids import uuid7
 
@@ -72,6 +72,7 @@ class PipelineConfig:
     max_docs_per_shard: int = 10_000
     glotlid_path: Path = DEFAULT_GLOTLID_PATH
     show_progress: bool = True
+    enable_ocr_fallback: bool = True
 
     def to_serializable(self) -> dict[str, Any]:
         """Snapshot used inside the manifest's ``config`` field."""
@@ -85,6 +86,7 @@ class PipelineConfig:
             "dedup_num_perm": self.dedup_num_perm,
             "dedup_ngram_size": self.dedup_ngram_size,
             "max_docs_per_shard": self.max_docs_per_shard,
+            "enable_ocr_fallback": self.enable_ocr_fallback,
             "filter": {
                 "min_chars": self.filter_config.min_chars,
                 "expected_language": self.filter_config.expected_language,
@@ -117,6 +119,7 @@ class RunReport:
     filter_rejected: dict[str, int] = field(default_factory=dict)
     post_dedup_kept: int = 0
     post_dedup_removed: int = 0
+    ocr_fallback_count: int = 0
     shards_written: int = 0
     total_chars_written: int = 0
     duration_seconds: float = 0.0
@@ -245,6 +248,36 @@ class Pipeline:
                 continue
             yield path
 
+    def _apply_ocr_fallback(self, path: Path, sparse: ParseResult) -> ParseResult | None:
+        """Re-parse ``path`` through DoclingParser to recover OCR-required content.
+
+        Returns ``None`` when Docling is unavailable or the OCR run itself fails;
+        the caller keeps the sparse native result in that case.
+        """
+        try:
+            from corpus_prep.parsers.docling_parser import DoclingParser
+        except ImportError:
+            return None
+
+        try:
+            ocr = DoclingParser().parse(path)
+        except (ImportError, ParserError):
+            return None
+        except Exception:
+            return None
+
+        return ParseResult(
+            text=ocr.text,
+            parser_name="pdf-ocr-fallback",
+            char_count=ocr.char_count,
+            page_count=sparse.page_count,
+            metadata={
+                **ocr.metadata,
+                "fallback_reason": "sparse_native_extraction",
+                "native_chars_per_page": sparse.metadata.get("chars_per_page", "0"),
+            },
+        )
+
     def _process_one(self, path: Path, report: RunReport) -> Document | None:
         """Run detect -> parse -> normalize -> filter for a single file."""
         try:
@@ -275,6 +308,19 @@ class Pipeline:
                 ParseFailure(path, parser.name, type(exc).__name__, str(exc))
             )
             return None
+
+        # OCR fallback: when the native PDF parser flags needs_ocr, replay through
+        # Docling. Skipped silently when Docling is not installed or the OCR run
+        # itself errors out — the sparse native result is still emitted in that case.
+        if (
+            self.config.enable_ocr_fallback
+            and mime == "application/pdf"
+            and result.metadata.get("needs_ocr") == "true"
+        ):
+            ocr_result = self._apply_ocr_fallback(path, result)
+            if ocr_result is not None:
+                result = ocr_result
+                report.ocr_fallback_count += 1
 
         report.parsed += 1
 
