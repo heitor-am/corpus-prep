@@ -28,7 +28,7 @@ class TestPDFNativeParser:
         assert result.char_count > 0
         assert "Hello world" in result.text
         assert "Second line" in result.text
-        assert result.metadata["extraction_method"] == "pymupdf4llm"
+        assert result.metadata["extraction_method"] == "pymupdf-text"
         assert "needs_ocr" not in result.metadata
 
     def test_blank_pdf_flags_needs_ocr(self, make_blank_pdf):
