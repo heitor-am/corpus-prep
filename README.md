@@ -32,6 +32,9 @@ uv venv .venv
 source .venv/bin/activate
 uv pip install -e ".[dev]"
 
+# (optional) install EasyOCR so the Docling OCR fallback for scanned PDFs works
+uv pip install -e ".[ocr]"
+
 # 2. Fetch a sample corpus (PT-BR municipal official journals) into data/<name>/
 ./scripts/fetch_sample_corpus.sh vale-do-caninde     # or serra-da-capivara
 

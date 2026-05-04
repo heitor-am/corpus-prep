@@ -49,6 +49,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+ocr = [
+    # EasyOCR with Portuguese; required for the Docling OCR fallback to actually
+    # recognize text. Heavy install (~2 GB with PyTorch + scikit-image).
+    "easyocr>=1.7",
+]
 dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
