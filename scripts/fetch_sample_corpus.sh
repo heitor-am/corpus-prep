@@ -1,20 +1,51 @@
 #!/bin/bash
-# Fetches the sample corpus (PT-BR diarios oficiais piauienses) into data/raw/.
+# Fetches a sample corpus (PT-BR diarios oficiais) into data/<name>/.
 #
-# The corpus is hosted on a public Google Drive folder. Downloads via gdown
-# (no OAuth needed as long as the folder is shared with "Anyone with the link").
+# Two ways to invoke:
 #
-# Drive imposes per-IP rate limits on public folder downloads, so the script
-# wraps gdown in a retry loop. gdown skips files that already exist on disk,
-# so re-running picks up where the previous attempt stopped.
+#   ./scripts/fetch_sample_corpus.sh <name>
+#       Look <name> up in the table below and download the matching folder
+#       into data/<name>/.
 #
-# Override the source folder by exporting DRIVE_URL before running.
+#   DRIVE_URL=... TARGET_DIR=... ./scripts/fetch_sample_corpus.sh
+#       Manual override for arbitrary Drive folders.
+#
+# Drive imposes per-IP rate limits on public-folder downloads, so the script
+# wraps gdown in a retry loop. gdown skips files already on disk, so re-running
+# picks up where the previous attempt stopped.
 
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TARGET_DIR="${TARGET_DIR:-$REPO_ROOT/data/raw}"
-DRIVE_URL="${DRIVE_URL:-https://drive.google.com/drive/folders/1uG-b5wUw_KfzH1ZiRNfB7WzoUogrAa_I}"
+
+# Known corpora: name -> Drive folder URL.
+declare -A CORPORA=(
+  [vale-do-caninde]="https://drive.google.com/drive/folders/1ZRbnc0NMi1MxiP1FSpRdOxVolnfFQnSt"
+  [serra-da-capivara]="https://drive.google.com/drive/folders/1uG-b5wUw_KfzH1ZiRNfB7WzoUogrAa_I"
+)
+
+# Resolve target dir + URL from either positional arg or env vars.
+NAME="${1:-}"
+if [ -n "$NAME" ]; then
+  if [ -z "${CORPORA[$NAME]:-}" ]; then
+    echo "ERROR: unknown corpus '$NAME'." >&2
+    echo "Available: ${!CORPORA[*]}" >&2
+    echo "Or set DRIVE_URL and TARGET_DIR env vars to override." >&2
+    exit 1
+  fi
+  TARGET_DIR="${TARGET_DIR:-$REPO_ROOT/data/$NAME}"
+  DRIVE_URL="${DRIVE_URL:-${CORPORA[$NAME]}}"
+else
+  TARGET_DIR="${TARGET_DIR:-$REPO_ROOT/data/raw}"
+  if [ -z "${DRIVE_URL:-}" ]; then
+    echo "ERROR: no corpus name given and DRIVE_URL not set." >&2
+    echo "Usage:" >&2
+    echo "  $0 <name>           # known: ${!CORPORA[*]}" >&2
+    echo "  DRIVE_URL=... $0    # any Drive folder" >&2
+    exit 1
+  fi
+fi
+
 MAX_RETRIES="${MAX_RETRIES:-5}"
 RETRY_SLEEP_SECONDS="${RETRY_SLEEP_SECONDS:-60}"
 

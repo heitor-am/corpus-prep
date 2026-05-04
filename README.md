@@ -32,21 +32,21 @@ uv venv .venv
 source .venv/bin/activate
 uv pip install -e ".[dev]"
 
-# 2. Fetch the sample corpus (PT-BR municipal official journals) into data/raw
-./scripts/fetch_sample_corpus.sh
+# 2. Fetch a sample corpus (PT-BR municipal official journals) into data/<name>/
+./scripts/fetch_sample_corpus.sh vale-do-caninde     # or serra-da-capivara
 
 # 3. (optional) download the GlotLID v3 model used by the language filter
 ./scripts/download_glotlid.sh
 
 # 4. Run the pipeline
-corpus-prep ingest data/raw -o data/corpus
+corpus-prep ingest data/vale-do-caninde -o data/corpus
 
 # 5. Inspect
 corpus-prep stats   data/corpus
 corpus-prep explore data/corpus
 ```
 
-The fetcher pulls from a public Google Drive folder via `gdown` — no OAuth as long as the folder is shared "Anyone with the link". Override the default source with `DRIVE_URL=...`. Drive rate-limits public-folder downloads, so the script retries with backoff and `gdown` skips files already on disk.
+The fetcher pulls from public Google Drive folders via `gdown` — no OAuth as long as a folder is shared "Anyone with the link". Pass a known corpus name as the first argument (`vale-do-caninde`, `serra-da-capivara`) or override with `DRIVE_URL=... TARGET_DIR=... ./scripts/fetch_sample_corpus.sh`. Drive rate-limits public-folder downloads, so the script retries with backoff and `gdown` skips files already on disk.
 
 If you skip step 3, run `corpus-prep ingest --no-filter` so the pipeline doesn't try to load the GlotLID model.
 
