@@ -86,6 +86,7 @@ class TestPipelineE2E:
         config = PipelineConfig(
             input_dir=input_dir,
             output_dir=output_dir,
+            show_progress=False,
             filter_config=FilterConfig(min_chars=200),
         )
         report = Pipeline(config, language_predictor=MockLangPredictor()).run()
@@ -117,6 +118,7 @@ class TestPipelineE2E:
         config = PipelineConfig(
             input_dir=input_dir,
             output_dir=output_dir,
+            show_progress=False,
             filter_config=FilterConfig(min_chars=200),
         )
         Pipeline(config, language_predictor=MockLangPredictor()).run()
@@ -143,6 +145,7 @@ class TestPipelineE2E:
         config = PipelineConfig(
             input_dir=input_dir,
             output_dir=output_dir,
+            show_progress=False,
             enable_filter=False,
         )
         # Without filter, no LID needed.
@@ -161,6 +164,7 @@ class TestPipelineE2E:
         config = PipelineConfig(
             input_dir=input_dir,
             output_dir=output_dir,
+            show_progress=False,
             enable_pre_dedup=False,
             enable_post_dedup=False,
             filter_config=FilterConfig(min_chars=200),
@@ -183,6 +187,7 @@ class TestPipelineE2E:
         config = PipelineConfig(
             input_dir=input_dir,
             output_dir=output_dir,
+            show_progress=False,
             enable_filter=False,
         )
         report = Pipeline(config).run()

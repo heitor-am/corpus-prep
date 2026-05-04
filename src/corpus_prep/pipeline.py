@@ -25,7 +25,18 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from corpus_prep.dedup import dedup_documents, dedup_files, file_sha256
+from datasketch import MinHashLSH
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
+
+from corpus_prep.dedup import dedup_files, file_sha256, make_minhash
 from corpus_prep.detect import detect_mime
 from corpus_prep.filter import (
     DEFAULT_GLOTLID_PATH,
@@ -41,7 +52,7 @@ from corpus_prep.parsers import (
     get_parser,
 )
 from corpus_prep.schemas import Document
-from corpus_prep.shard import ShardManifest, ShardWriter
+from corpus_prep.shard import ShardWriter
 from corpus_prep.utils.ids import uuid7
 
 
@@ -60,6 +71,7 @@ class PipelineConfig:
     dedup_ngram_size: int = 5
     max_docs_per_shard: int = 10_000
     glotlid_path: Path = DEFAULT_GLOTLID_PATH
+    show_progress: bool = True
 
     def to_serializable(self) -> dict[str, Any]:
         """Snapshot used inside the manifest's ``config`` field."""
@@ -132,7 +144,14 @@ class Pipeline:
             self.language_predictor = None
 
     def run(self) -> RunReport:
-        """Execute the full pipeline and return a RunReport."""
+        """Execute the full pipeline and return a RunReport.
+
+        The pipeline streams: each parsed Document goes straight through
+        normalize -> filter -> online MinHash LSH -> ShardWriter. Shard files
+        rotate to disk as soon as ``max_docs_per_shard`` is reached, so the
+        output directory grows incrementally and a Rich progress bar updates
+        per input file. No in-memory backlog of all Documents.
+        """
         start = time.perf_counter()
         report = RunReport()
 
@@ -145,26 +164,63 @@ class Pipeline:
             files, _dropped = dedup_files(files)
         report.pre_dedup_kept = len(files)
 
-        # 3-5. Parse + normalize + filter, per file.
-        documents: list[Document] = []
-        for path in files:
-            doc = self._process_one(path, report)
-            if doc is not None:
-                documents.append(doc)
-
-        # 6. Post-dedup.
-        if self.config.enable_post_dedup and documents:
-            documents, removed_ids = dedup_documents(
-                documents,
+        # Online MinHash index for streaming post-dedup.
+        lsh: MinHashLSH | None = None
+        if self.config.enable_post_dedup:
+            lsh = MinHashLSH(
                 threshold=self.config.dedup_threshold,
                 num_perm=self.config.dedup_num_perm,
-                ngram_size=self.config.dedup_ngram_size,
             )
-            report.post_dedup_removed = len(removed_ids)
-        report.post_dedup_kept = len(documents)
 
-        # 7. Shard.
-        manifest = self._write_shards(documents)
+        progress_columns = (
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            MofNCompleteColumn(),
+            TimeElapsedColumn(),
+            TimeRemainingColumn(),
+        )
+
+        with ShardWriter(
+            self.config.output_dir,
+            max_docs_per_shard=self.config.max_docs_per_shard,
+            config=self.config.to_serializable(),
+        ) as writer, Progress(
+            *progress_columns,
+            disable=not self.config.show_progress,
+            transient=False,
+        ) as progress:
+            task = progress.add_task(
+                f"Ingesting {self.config.input_dir.name}", total=len(files)
+            )
+            for path in files:
+                progress.update(task, description=f"Parsing {path.name}"[:80])
+                doc = self._process_one(path, report)
+                if doc is None:
+                    progress.advance(task)
+                    continue
+
+                # Online near-dedup.
+                if lsh is not None:
+                    signature = make_minhash(
+                        doc.text,
+                        num_perm=self.config.dedup_num_perm,
+                        ngram_size=self.config.dedup_ngram_size,
+                    )
+                    if lsh.query(signature):
+                        report.post_dedup_removed += 1
+                        progress.advance(task)
+                        continue
+                    lsh.insert(str(doc.id), signature)
+
+                writer.write(doc)
+                report.post_dedup_kept += 1
+                progress.advance(task)
+
+            progress.update(task, description="Finalizing shards")
+
+        manifest = writer.manifest
+        assert manifest is not None
         report.shards_written = len(manifest.shards)
         report.total_chars_written = manifest.total_chars
 
@@ -241,17 +297,6 @@ class Pipeline:
             language_confidence=confidence,
             metadata=result.metadata,
         )
-
-    def _write_shards(self, documents: list[Document]) -> ShardManifest:
-        with ShardWriter(
-            self.config.output_dir,
-            max_docs_per_shard=self.config.max_docs_per_shard,
-            config=self.config.to_serializable(),
-        ) as writer:
-            writer.write_many(documents)
-        assert writer.manifest is not None
-        return writer.manifest
-
 
 def run_pipeline(
     config: PipelineConfig,

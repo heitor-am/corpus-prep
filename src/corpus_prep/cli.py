@@ -62,11 +62,15 @@ def ingest(
         Path,
         typer.Option("--glotlid", help="Path to GlotLID v3 .bin (used by language filter)."),
     ] = DEFAULT_GLOTLID_PATH,
+    no_progress: Annotated[
+        bool, typer.Option("--no-progress", help="Hide the live progress bar.")
+    ] = False,
 ) -> None:
     """Run the full ingest pipeline on INPUT_DIR.
 
     Discovers files, deduplicates, parses, normalizes, filters by language and
-    writes Parquet shards + manifest.json under -o/--output.
+    writes Parquet shards + manifest.json under -o/--output. Shards are written
+    incrementally as each shard fills up; progress reports per file in real time.
     """
     config = PipelineConfig(
         input_dir=input_dir,
@@ -78,14 +82,14 @@ def ingest(
         dedup_threshold=dedup_threshold,
         max_docs_per_shard=max_docs_per_shard,
         glotlid_path=glotlid,
+        show_progress=not no_progress,
     )
 
     console.print(f"[bold]Input :[/bold] {config.input_dir}")
     console.print(f"[bold]Output:[/bold] {config.output_dir}")
     console.print()
 
-    with console.status("[bold green]Running pipeline..."):
-        report = run_pipeline(config)
+    report = run_pipeline(config)
 
     _print_run_report(report)
 
