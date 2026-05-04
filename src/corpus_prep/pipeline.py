@@ -230,8 +230,20 @@ class Pipeline:
     # ------------------------------ internals ------------------------------
 
     def _discover(self) -> Iterable[Path]:
-        """Recursively yield files under ``input_dir`` (sorted by ``run``)."""
-        return (p for p in self.config.input_dir.rglob("*") if p.is_file())
+        """Recursively yield files under ``input_dir``, skipping the output dir.
+
+        When ``output_dir`` lives inside ``input_dir`` (e.g.
+        ``corpus-prep ingest data -o data/corpus``), naive rglob would feed
+        previously written shards back into the next run. We resolve both paths
+        and exclude any candidate inside the output tree.
+        """
+        output_resolved = self.config.output_dir.resolve()
+        for path in self.config.input_dir.rglob("*"):
+            if not path.is_file():
+                continue
+            if path.resolve().is_relative_to(output_resolved):
+                continue
+            yield path
 
     def _process_one(self, path: Path, report: RunReport) -> Document | None:
         """Run detect -> parse -> normalize -> filter for a single file."""

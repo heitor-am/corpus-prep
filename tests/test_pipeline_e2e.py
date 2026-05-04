@@ -198,3 +198,36 @@ class TestPipelineE2E:
         assert len(report.parse_failures) == 1
         # Either detect or registry stage; both are valid.
         assert report.parse_failures[0].stage in {"detect", "registry"}
+
+    def test_skips_files_inside_output_dir(self, tmp_path):
+        """When output_dir lives inside input_dir, prior shards must not be re-ingested."""
+        input_dir = tmp_path / "in"
+        output_dir = input_dir / "corpus"  # output INSIDE input
+        input_dir.mkdir()
+        output_dir.mkdir()
+
+        # Pre-populate the output dir with stale artifacts from a hypothetical run.
+        (output_dir / "manifest.json").write_text('{"fake": "manifest"}')
+        (output_dir / "shard-0000.parquet").write_bytes(b"PAR1\x00\x00fake parquet")
+
+        # Genuine input lives at the top of input_dir.
+        long_text = (
+            "Modelos de linguagem treinados em corpora de larga escala demonstram "
+            "comportamentos emergentes a partir de certo numero de parametros. "
+            "Pesquisadores em laboratorios de ponta tem demonstrado que a "
+            "capacidade de raciocinio melhora suavemente com a escala."
+        ) * 2
+        (input_dir / "real_input.txt").write_text(long_text)
+
+        config = PipelineConfig(
+            input_dir=input_dir,
+            output_dir=output_dir,
+            show_progress=False,
+            enable_filter=False,
+        )
+        report = Pipeline(config).run()
+
+        # Only the real input is seen; manifest.json and the stale parquet are skipped.
+        assert report.input_files == 1
+        assert report.parsed == 1
+        assert report.parse_failures == []
